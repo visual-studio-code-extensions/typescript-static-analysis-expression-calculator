@@ -13,7 +13,10 @@
         "doc": "./doc",
         "test": "./test"
     },
-    "engines": { "node": ">=16.13", "npm": ">=8.3"},
+    "engines": {
+        "node": ">=16.13",
+        "npm": ">=8.3"
+    },
     "scripts": {
         "prepack": "npm run build && npm run doc && npm run test",
         "build": "npm run style && npm run lint && npm run clean && npm run compile",
@@ -25,13 +28,13 @@
         "style-windows": "npm run prettier-windows",
         "style-check": "npm run prettier-check",
         "lint": "npm run eslint",
-        "lint-windows":"npm run eslint-windows",
+        "lint-windows": "npm run eslint-windows",
         "lint-fix": "npm run eslint-fix",
-        "clean":"rm --dir --recursive --verbose --force dist temp",
+        "clean": "rm --dir --recursive --verbose --force dist temp",
         "clean-windows": "if exist dist (rmdir /S /Q dist) && if exist temp (rmdir /S /Q temp)",
         "compile": "./node_modules/.bin/tsc --project ./tsconfig.json",
         "prettier": "./node_modules/.bin/prettier --config ./config/prettier.json --write \"@(src|test|scripts)/**/*.@(ts|js|md|html|css|json)\"",
-        "prettier-windows":".\\node_modules\\.bin\\prettier --config ./config/prettier.json --write \"@(src|test|scripts)/**/*.@(ts|js|md|html|css|json)\"",
+        "prettier-windows": ".\\node_modules\\.bin\\prettier --config ./config/prettier.json --write \"@(src|test|scripts)/**/*.@(ts|js|md|html|css|json)\"",
         "prettier-check": "./node_modules/.bin/prettier --config ./config/prettier.json --check \"@(src|test)/**/*.@(ts|js|md|html|css|json)\"",
         "eslint": "./node_modules/.bin/eslint --config ./config/eslint.json --no-eslintrc \"@(src|test|scripts)/**/*.@(ts|js)\"",
         "eslint-windows": ".\\node_modules\\.bin\\eslint --config ./config/eslint.json --no-eslintrc \"@(src|test|scripts)/**/*.@(ts|js)\"",
@@ -39,9 +42,8 @@
         "api-extractor": "./node_modules/.bin/api-extractor",
         "doc-extract": "./node_modules/.bin/api-extractor run --local --verbose",
         "doc-document": "./node_modules/.bin/api-documenter markdown --input-folder ./temp --output-folder ./doc",
-
         "check": "./node_modules/.bin/ts-node scripts/check.ts",
-        "check-windows":".\\node_modules\\.bin\\ts-node scripts/check.ts",
+        "check-windows": ".\\node_modules\\.bin\\ts-node scripts/check.ts",
         "start": "./node_modules/.bin/ts-node test/main.ts"
     },
     "repository": {
@@ -54,11 +56,11 @@
         "url": "https://github.com/wandyezj/package/issues"
     },
     "homepage": "https://github.com/wandyezj/package#readme",
-    "dependencies": {},
     "devDependencies": {
         "@microsoft/api-documenter": "^7.17.9",
         "@microsoft/api-extractor": "^7.25.2",
         "@types/jest": "^28.1.1",
+        "@types/node": "^16.11.7",
         "@typescript-eslint/eslint-plugin": "^5.28.0",
         "@typescript-eslint/parser": "^5.28.0",
         "eslint": "^8.17.0",
@@ -66,7 +68,6 @@
         "prettier": "^2.7.1",
         "ts-jest": "^28.0.5",
         "ts-node": "^10.8.1",
-        "@types/node": "^16.11.7",
-        "typescript": "^4.6.4"
+        "typescript": "^4.7.4"
     }
 }

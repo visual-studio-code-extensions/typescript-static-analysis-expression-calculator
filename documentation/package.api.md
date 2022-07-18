@@ -4,7 +4,20 @@
 
 ```ts
 
+// Warning: (ae-missing-release-tag) "analyzeCode" is exported by the package, but it is missing a release tag (@alpha, @beta, @public, or @internal)
+//
+// @public
+export function analyzeCode(code: string): VariableStatementAnalysis[];
+
 // @beta
 export function hello(): string;
+
+// Warning: (ae-missing-release-tag) "VariableStatementAnalysis" is exported by the package, but it is missing a release tag (@alpha, @beta, @public, or @internal)
+//
+// @public (undocumented)
+export interface VariableStatementAnalysis {
+    // (undocumented)
+    text: string;
+}
 
 ```

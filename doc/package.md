@@ -10,5 +10,12 @@ Package Documentation
 
 |  Function | Description |
 |  --- | --- |
+|  [analyzeCode(code)](./package.analyzecode.md) | visit top level nodes and retrieve all VariableStatements. |
 |  [hello()](./package.hello.md) | <b><i>(BETA)</i></b> Example Documentation |
+
+## Interfaces
+
+|  Interface | Description |
+|  --- | --- |
+|  [VariableStatementAnalysis](./package.variablestatementanalysis.md) |  |
 
