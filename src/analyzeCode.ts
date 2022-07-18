@@ -37,9 +37,10 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
     }
 
     // iterate through source file searching for variable statements
-    sourceFile.statements.forEach((node) => {
-        visitNodeRecursive(node, visitVariableStatement);
-    });
+    visitNodeRecursive(sourceFile, visitVariableStatement);
+    // sourceFile.statements.forEach((node) => {
+    //     visitNodeRecursive(node, visitVariableStatement);
+    // });
 
     return detectedVariableStatements;
 }
