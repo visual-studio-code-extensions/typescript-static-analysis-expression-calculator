@@ -40,8 +40,7 @@ export function analyzeCode(code: string): number[] {
         // }
 
         //check if node is a binary expression
-        if(ts.isBinaryExpression(node)) {
-
+        if (ts.isBinaryExpression(node)) {
             //get the text for that node and push it to the array to be analyzed later
             const text = node.getText();
             detectedVariableStatements.push({
@@ -58,11 +57,10 @@ export function analyzeCode(code: string): number[] {
     // });
 
     //Array to hold the calculations we just made
-    const output : number[] = [];
+    const output: number[] = [];
 
     //For every expression in the expressions array
-    for(const expression of detectedVariableStatements)
-    {
+    for (const expression of detectedVariableStatements) {
         //calculate and add the result to the results array
         output.push(arithmeticEvaluate(expression.text));
     }
@@ -70,7 +68,7 @@ export function analyzeCode(code: string): number[] {
     if (output.length <= 0) {
         throw new Error("Cannot analyze this code");
     }
-    
+
     return output;
 }
 

@@ -9,7 +9,7 @@ test("basic", () => {
 
 test("Arithmetic expression", () => {
     const code = "const x = 2 + 5";
-    
+
     const statements = analyzeCode(code);
 
     expect(statements).toStrictEqual([7]);
