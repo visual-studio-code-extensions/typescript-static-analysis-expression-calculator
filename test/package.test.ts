@@ -12,7 +12,12 @@ test("Arithmetic expression", () => {
 
     const statements = analyzeCode(code);
 
-    expect(statements).toStrictEqual([9]);
+    expect(statements).toStrictEqual([
+        {
+            variableName: "x",
+            variableValue: 9,
+        },
+    ]);
 });
 
 // test("simple assignment", () => {

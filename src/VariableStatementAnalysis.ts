@@ -1,3 +1,4 @@
 export interface VariableStatementAnalysis {
-    text: string;
+    variableName: string;
+    variableValue: number;
 }

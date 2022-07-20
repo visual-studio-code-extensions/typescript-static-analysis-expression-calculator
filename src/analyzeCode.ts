@@ -12,7 +12,7 @@ import { VariableStatementAnalysis } from "./VariableStatementAnalysis";
  * @param code
  */
 
-export function analyzeCode(code: string): number[] {
+export function analyzeCode(code: string): VariableStatementAnalysis[] {
     const sourceFileName = "code.ts";
 
     const program = createProgramFromFiles(
@@ -32,25 +32,31 @@ export function analyzeCode(code: string): number[] {
     }
 
     //Create array that will hold the variables that we want to work with.
-    const output: number[] = [];
-    const variables = new Map();
+    //const output: number[] = [];
+    //const variables = new Map<string, number>();
+    const detectedVariableStatements: VariableStatementAnalysis[] = [];
 
     //Collect text(or other information) from every node and add it to the array
     function visitVariableStatement(node: ts.Node) {
         //check if node is a binary expression
         if (ts.isVariableDeclaration(node)) {
-            const variableName: ts.Identifier | ts.BindingName = node.name;
-            const variableValue: number = calculateBinaryExpression(
-                node.initializer
-            );
+            detectedVariableStatements.push({
+                variableName: node.name.getText(),
+                variableValue: calculateBinaryExpression(node.initializer),
+            });
 
-            variables.set(variableName, variableValue);
+            // const variableName: ts.BindingName = node.name;
+            // const variableValue: number = calculateBinaryExpression(
+            //     node.initializer
+            // );
+
+            //variables.set(variableName.getFullText(), variableValue);
         }
     }
     // iterate through source file searching for variable statements
     visitNodeRecursive(sourceFile, visitVariableStatement);
 
-    return output;
+    return detectedVariableStatements;
 }
 
 const Operations: Record<number, (a: number, b: number) => number> = {
@@ -70,11 +76,19 @@ function calculateBinaryExpression(node: ts.Expression | undefined): number {
     }
 
     if (ts.isBinaryExpression(node)) {
-        if (ts.isBinaryExpression(node.left)) {
+        if (
+            ts.isBinaryExpression(node.left) &&
+            ts.isBinaryExpression(node.right)
+        ) {
             //calculatebinary on left
             return Operations[node.operatorToken.kind](
                 calculateBinaryExpression(node.left),
                 parseFloat(node.right.getText())
+            );
+        } else if (ts.isBinaryExpression(node.left)) {
+            return Operations[node.operatorToken.kind](
+                calculateBinaryExpression(node.left),
+                calculateBinaryExpression(node.right)
             );
         } else {
             //calculate normally
