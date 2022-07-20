@@ -20,20 +20,16 @@ test("Arithmetic expression", () => {
     ]);
 });
 
-test("Expression with predefined variables", () => {
-    const code = `const x = 2 + 5 ;
-                const y = x + 2;`;
+test("Edit variable", () => {
+    const code = `var y = 2 + 5 ;
+                y = 2;`;
 
     const statements = analyzeCode(code);
 
     expect(statements).toStrictEqual([
         {
-            variableName: "x",
-            variableValue: 7,
-        },
-        {
             variableName: "y",
-            variableValue: 9,
+            variableValue: 2,
         },
     ]);
 });
@@ -44,7 +40,8 @@ test("Expression with multiple predefined variables", () => {
                 const m = x + y;
                 const z = 3;
                 var f = m + 2;
-                const j = 2 + z;`;
+                const j = 2 + z;
+                const w = 6 + (5 + 2);`;
 
     const statements = analyzeCode(code);
 
@@ -72,6 +69,10 @@ test("Expression with multiple predefined variables", () => {
         {
             variableName: "j",
             variableValue: 5,
+        },
+        {
+            variableName: "w",
+            variableValue: 13,
         },
     ]);
 });
