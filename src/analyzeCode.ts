@@ -33,15 +33,16 @@ export function analyzeCode(code: string): number[] {
 
     //Create array that will hold the variables that we want to work with.
     const output: number[] = [];
-    var variables = new Map();
+    const variables = new Map();
 
     //Collect text(or other information) from every node and add it to the array
     function visitVariableStatement(node: ts.Node) {
-        
         //check if node is a binary expression
         if (ts.isVariableDeclaration(node)) {
-            var variableName : ts.Identifier | ts.BindingName = node.name;
-            var variableValue : number = calculateBinaryExpression(node.initializer);
+            const variableName: ts.Identifier | ts.BindingName = node.name;
+            const variableValue: number = calculateBinaryExpression(
+                node.initializer
+            );
 
             variables.set(variableName, variableValue);
         }
@@ -68,8 +69,7 @@ function calculateBinaryExpression(node: ts.Expression | undefined): number {
         throw new Error("Expression is undefined");
     }
 
-    if(ts.isBinaryExpression(node))
-    {
+    if (ts.isBinaryExpression(node)) {
         if (ts.isBinaryExpression(node.left)) {
             //calculatebinary on left
             return Operations[node.operatorToken.kind](
