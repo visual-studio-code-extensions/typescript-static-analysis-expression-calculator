@@ -11,7 +11,6 @@ import { VariableStatementAnalysis } from "./VariableStatementAnalysis";
  * visit top level nodes and retrieve all VariableStatements.
  * @param code
  */
-
 export function analyzeCode(code: string): VariableStatementAnalysis[] {
     const sourceFileName = "code.ts";
 
@@ -32,8 +31,6 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
     }
 
     //Create array that will hold the variables that we want to work with.
-    //const output: number[] = [];
-    //const variables = new Map<string, number>();
     const detectedVariableStatements: VariableStatementAnalysis[] = [];
 
     //Collect text(or other information) from every node and add it to the array
@@ -42,15 +39,12 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
         if (ts.isVariableDeclaration(node)) {
             detectedVariableStatements.push({
                 variableName: node.name.getText(),
-                variableValue: calculateBinaryExpression(node.initializer),
+                //TODO: can we reference detectedvariablestatements without passing it around?
+                variableValue: processExpression(
+                    node.initializer,
+                    detectedVariableStatements
+                ),
             });
-
-            // const variableName: ts.BindingName = node.name;
-            // const variableValue: number = calculateBinaryExpression(
-            //     node.initializer
-            // );
-
-            //variables.set(variableName.getFullText(), variableValue);
         }
     }
     // iterate through source file searching for variable statements
@@ -70,34 +64,70 @@ const Operations: Record<number, (a: number, b: number) => number> = {
     //23: (a: number, b: number): number => Math.floor(a / b),
 };
 
-function calculateBinaryExpression(node: ts.Expression | undefined): number {
+function getValue(
+    node: ts.NumericLiteral | ts.Identifier,
+    detectedVariableStatements: VariableStatementAnalysis[]
+): number {
+    if (ts.isNumericLiteral(node)) {
+        return parseFloat(node.getText());
+    } else {
+        const identifiervalue = detectedVariableStatements.find((variables) => {
+            return variables.variableName === node.getText();
+        });
+        if (identifiervalue === undefined) {
+            throw new Error(
+                "Identifier cannot be found or undefined, please define a variable before using it"
+            );
+        }
+
+        return identifiervalue.variableValue;
+    }
+}
+
+function processExpression(
+    node: ts.Expression | ts.NumericLiteral | undefined,
+    detectedVariableStatements: VariableStatementAnalysis[]
+): number {
     if (node === undefined) {
         throw new Error("Expression is undefined");
     }
 
-    if (ts.isBinaryExpression(node)) {
+    if (ts.isNumericLiteral(node)) {
+        //in case variables were defined just with one numeric literal for example: const x = 2;
+        return getValue(node, detectedVariableStatements);
+    } else if (ts.isBinaryExpression(node)) {
         if (
             ts.isBinaryExpression(node.left) &&
             ts.isBinaryExpression(node.right)
         ) {
-            //calculatebinary on left
+            //calculatebinary on left and right
             return Operations[node.operatorToken.kind](
-                calculateBinaryExpression(node.left),
-                parseFloat(node.right.getText())
+                processExpression(node.left, detectedVariableStatements),
+                processExpression(node.right, detectedVariableStatements)
             );
-        } else if (ts.isBinaryExpression(node.left)) {
+        } else if (
+            ts.isBinaryExpression(node.left) &&
+            (ts.isIdentifier(node.right) || ts.isNumericLiteral(node.right))
+        ) {
+            //calculatebinary on left only
             return Operations[node.operatorToken.kind](
-                calculateBinaryExpression(node.left),
-                calculateBinaryExpression(node.right)
+                processExpression(node.left, detectedVariableStatements),
+                getValue(node.right, detectedVariableStatements)
             );
-        } else {
-            //calculate normally
+        } else if (
+            (ts.isIdentifier(node.left) || ts.isNumericLiteral(node.left)) &&
+            (ts.isIdentifier(node.right) || ts.isNumericLiteral(node.right))
+        ) {
+            //base case, return after calculating numeric literals on left and right.
             return Operations[node.operatorToken.kind](
-                parseFloat(node.left.getText()),
-                parseFloat(node.right.getText())
+                getValue(node.left, detectedVariableStatements),
+                getValue(node.right, detectedVariableStatements)
             );
         }
+    } else {
+        throw new Error("Cannot process this expression");
     }
+    //TODO: can we get rid of this return statement?
     return -99999;
 }
 

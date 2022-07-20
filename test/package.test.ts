@@ -20,6 +20,62 @@ test("Arithmetic expression", () => {
     ]);
 });
 
+test("Expression with predefined variables", () => {
+    const code = `const x = 2 + 5 ;
+                const y = x + 2;`;
+
+    const statements = analyzeCode(code);
+
+    expect(statements).toStrictEqual([
+        {
+            variableName: "x",
+            variableValue: 7,
+        },
+        {
+            variableName: "y",
+            variableValue: 9,
+        },
+    ]);
+});
+
+test("Expression with multiple predefined variables", () => {
+    const code = `const x = 2 + 5 ;
+                const y = 6 + 1;
+                const m = x + y;
+                const z = 3;
+                var f = m + 2;
+                const j = 2 + z;`;
+
+    const statements = analyzeCode(code);
+
+    expect(statements).toStrictEqual([
+        {
+            variableName: "x",
+            variableValue: 7,
+        },
+        {
+            variableName: "y",
+            variableValue: 7,
+        },
+        {
+            variableName: "m",
+            variableValue: 14,
+        },
+        {
+            variableName: "z",
+            variableValue: 3,
+        },
+        {
+            variableName: "f",
+            variableValue: 16,
+        },
+        {
+            variableName: "j",
+            variableValue: 5,
+        },
+    ]);
+});
+
 // test("simple assignment", () => {
 //     const code = "const x = 1 + 2";
 
