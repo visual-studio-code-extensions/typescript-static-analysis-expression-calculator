@@ -8,11 +8,11 @@ test("basic", () => {
 });
 
 test("Arithmetic expression", () => {
-    const code = "const x = 2 + 5";
+    const code = "const x = 2 + 5 + 2;";
 
     const statements = analyzeCode(code);
 
-    expect(statements).toStrictEqual([7]);
+    expect(statements).toStrictEqual([9]);
 });
 
 // test("simple assignment", () => {

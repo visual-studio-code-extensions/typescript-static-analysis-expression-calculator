@@ -25,11 +25,16 @@ export function arithmeticEvaluate(expression: string): number {
     let token = "";
     while (++i < expression.length) {
         const ch = expression[i];
+
+        //character is a space, dont do anything.
         if (ch === " ") continue;
 
+        //Paranthesis
         if (ch === "(") {
             let innerExpression = "";
             let innerBrackets = 0;
+
+            //Check if brackets are correct
             while (expression[++i] !== ")" || innerBrackets !== 0) {
                 innerExpression += expression[i];
 
@@ -41,10 +46,13 @@ export function arithmeticEvaluate(expression: string): number {
                 }
             }
 
+            //Evaluate the inner experssion of the ()
             if (innerExpression.length) {
                 const value = arithmeticEvaluate(innerExpression);
                 token = String(value);
             }
+
+            //We hit an operator
         } else if (operators[ch] && token.length) {
             const ops = operators[ch];
             tokens.push(token);
