@@ -41,7 +41,9 @@ test("Expression with multiple predefined variables", () => {
                 const z = 3;
                 var f = m + 2;
                 const j = 2 + z;
-                const w = 6 + (5 + 2);`;
+                const w = 6 + (5 + 2);
+                w++;
+                j--;`;
 
     const statements = analyzeCode(code);
 
@@ -68,11 +70,11 @@ test("Expression with multiple predefined variables", () => {
         },
         {
             variableName: "j",
-            variableValue: 5,
+            variableValue: 4,
         },
         {
             variableName: "w",
-            variableValue: 13,
+            variableValue: 14,
         },
     ]);
 });
