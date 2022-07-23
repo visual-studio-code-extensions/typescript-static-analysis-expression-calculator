@@ -31,16 +31,28 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
     //Collect text(or other information) from every node and add it to the array
     function visitVariableStatement(node: ts.Node) {
         //check if node is a variable declaration
-        if (ts.isVariableDeclaration(node)) {
+        if (ts.isVariableDeclarationList(node)) {
+            const variableType = node.getChildAt(0);
             //calculate the value of that variable and add it to the variables array
-            detectedVariableStatements.push({
-                variableName: node.name.getText(),
+            const expression = node.declarations[0];
+            const variableValue = processExpression(
+                //variable declartion will be most of the time after the equal sign so we are only working with one and can refer it with [0]
+                //get the expression of the variable declaration
+                expression.initializer,
+                detectedVariableStatements
+            );
 
-                //TODO: can we reference detectedvariablestatements without passing it around?
-                variableValue: processExpression(
-                    node.initializer,
-                    detectedVariableStatements
-                ),
+            if (variableValue === undefined) {
+                throw Error("Value is undefined");
+            }
+            detectedVariableStatements.push({
+                variableName: expression.name.getText(),
+
+                variableValue: variableValue,
+
+                variableText: node.getText(),
+
+                variableType: variableType.getText(),
             });
             //else if its an expression statement for example defining a variable and changing its value later
             //TODO: should check if its a const or a var
@@ -60,15 +72,23 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
                 if (elementIndex === -1) {
                     throw new Error("Variable not defined");
                 }
+
+                const variableValue = processExpression(
+                    nodeExpression.right,
+                    detectedVariableStatements
+                );
+
+                if (variableValue === undefined) {
+                    throw Error("Value is undefined");
+                }
+
                 //since right would always be binary expression we want to process that and update the variable value
                 detectedVariableStatements[elementIndex].variableValue =
-                    processExpression(
-                        nodeExpression.right,
-                        detectedVariableStatements
-                    );
+                    variableValue;
 
                 //else if we encounter a i++ or i-- case
             } else if (ts.isPostfixUnaryExpression(nodeExpression)) {
+                //Work in progress
                 const elementIndex = detectedVariableStatements.findIndex(
                     (variables) => {
                         return (
@@ -85,7 +105,7 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
 
                 //Apply the correct operation
                 detectedVariableStatements[elementIndex].variableValue =
-                    PostfixUnaryExpressionOp[nodeExpression.operator](
+                    postFixUnaryExpression[nodeExpression.operator](
                         detectedVariableStatements[elementIndex].variableValue
                     );
             }
@@ -98,25 +118,35 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
 }
 
 //TODO: can we merge from a record to something else that supports boolean
-const Operations: Record<number, (a: number, b: number) => number> = {
-    39: (a: number, b: number): number => a + b,
-    40: (a: number, b: number): number => a - b,
-    41: (a: number, b: number): number => a * b,
-    42: (a: number, b: number): number => a ** b,
-    43: (a: number, b: number): number => a / b,
-    44: (a: number, b: number): number => a % b,
+const operations: Record<number, (a: number, b: number) => number> = {
+    39: (a, b) => a + b,
+    40: (a, b) => a - b,
+    41: (a, b) => a * b,
+    42: (a, b) => a ** b,
+    43: (a, b) => a / b,
+    44: (a, b) => a % b,
 };
 
-const BoolOperations: Record<number, (a: number, b: number) => boolean> = {
-    36: (a: number, b: number): boolean => a === b,
-    37: (a: number, b: number): boolean => a !== b,
-    //  : (a:number, b:number): boolean => a == b,
-    //  : (a:number, b:number): boolean => a != b
+const boolOperations: Record<number, (a: number, b: number) => boolean> = {
+    //build throws an error for the below two lines, must find a workaround
+    // 34: (a, b) => a == b,
+    // 35: (a, b) => a != b,
+    36: (a, b) => a === b,
+    37: (a, b) => a !== b,
 };
 
-const PostfixUnaryExpressionOp: Record<number, (a: number) => number> = {
-    45: (a: number): number => a + 1,
-    46: (a: number): number => a - 1,
+const postFixUnaryExpression: Record<number, (a: number) => number> = {
+    45: (a) => a + 1,
+    46: (a) => a - 1,
+    // 39: (a) => +a,
+    // 40: (a) => -a,
+};
+
+const preFixUnaryExpression: Record<number, (a: number) => number> = {
+    45: (a) => a + 1,
+    46: (a) => a - 1,
+    39: (a) => +a,
+    40: (a) => -a,
 };
 
 function processExpression(
@@ -125,18 +155,22 @@ function processExpression(
         | ts.NumericLiteral
         | ts.Identifier
         | ts.ParenthesizedExpression
+        | ts.PrefixUnaryExpression
         | undefined,
     detectedVariableStatements: VariableStatementAnalysis[]
-): number {
+): number | undefined {
     if (node === undefined) {
         throw new Error("Expression is undefined");
     }
 
     if (ts.isBinaryExpression(node)) {
-        return Operations[node.operatorToken.kind](
-            processExpression(node.left, detectedVariableStatements),
-            processExpression(node.right, detectedVariableStatements)
-        );
+        const left = processExpression(node.left, detectedVariableStatements);
+        const right = processExpression(node.right, detectedVariableStatements);
+        if (left !== undefined && right !== undefined) {
+            return operations[node.operatorToken.kind](left, right);
+        } else {
+            return undefined;
+        }
     } else if (ts.isNumericLiteral(node)) {
         //in case variables were defined just with one numeric literal for example: const x = 2;
         return parseFloat(node.getText());
@@ -154,10 +188,45 @@ function processExpression(
     } else if (ts.isParenthesizedExpression(node)) {
         //in case we encounter a (...) situation, for example const a = 2 + (2 + 4)
         return processExpression(node.expression, detectedVariableStatements);
+    } else if (ts.isPrefixUnaryExpression(node)) {
+        if (ts.isIdentifier(node.operand)) {
+            //Case where we are doing ++i or --i
+            const elementIndex = detectedVariableStatements.findIndex(
+                (variables) => {
+                    return variables.variableName === node.operand.getText();
+                }
+            );
+            //variable not found
+            if (elementIndex === -1) {
+                throw new Error("Variable not defined");
+            }
+            //Apply the correct operation
+            return preFixUnaryExpression[node.operator](
+                detectedVariableStatements[elementIndex].variableValue
+            );
+        } else {
+            if (
+                node.operator === ts.SyntaxKind.PlusPlusToken ||
+                node.operator === ts.SyntaxKind.MinusMinusToken
+            ) {
+                //Can't do --4 or ++3 when defining a variable
+                throw new Error(
+                    "The operand of an increment or decrement operator must be a variable or a propert"
+                );
+            }
+            const value = processExpression(
+                node.operand,
+                detectedVariableStatements
+            );
+            if (value !== undefined) {
+                return preFixUnaryExpression[node.operator](value);
+            } else {
+                return undefined;
+            }
+        }
     } else {
         throw new Error("Cannot process this expression");
     }
-    //TODO: can we get rid of this return statement?
 }
 
 /**
@@ -170,3 +239,7 @@ function visitNodeRecursive(node: ts.Node, visit: (node: ts.Node) => void) {
     visit(node);
     node.getChildren().forEach((child) => visitNodeRecursive(child, visit));
 }
+
+//For future parse and reparse whenever file changes
+//return full line text
+//ts.getLineAndCharacter
