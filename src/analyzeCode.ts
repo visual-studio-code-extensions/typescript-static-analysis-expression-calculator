@@ -127,14 +127,17 @@ function editVariables(
         if (elementIndex === -1) {
             throw new Error("Variable not defined");
         }
-    
+
         //Get the new variable value
         const newVariableValue = processExpression(
             nodeExpression.right,
             detectedVariableStatements
         );
 
-        const newVariableLine = ts.getLineAndCharacterOfPosition(sourceFile, nodeExpression.pos);
+        const newVariableLine = ts.getLineAndCharacterOfPosition(
+            sourceFile,
+            nodeExpression.pos
+        );
 
         //Check if undefined and throw an error if so
         if (newVariableValue === undefined || newVariableLine === undefined) {
@@ -142,11 +145,14 @@ function editVariables(
         }
 
         //since right would always be binary expression we want to process that, and update the variable value
-        detectedVariableStatements[elementIndex].variableValue = newVariableValue;
+        detectedVariableStatements[elementIndex].variableValue =
+            newVariableValue;
 
-        detectedVariableStatements[elementIndex].variableLineNumber = newVariableLine.line;
+        detectedVariableStatements[elementIndex].variableLineNumber =
+            newVariableLine.line;
 
-        detectedVariableStatements[elementIndex].variableStartingCharacter = newVariableLine.character;
+        detectedVariableStatements[elementIndex].variableStartingCharacter =
+            newVariableLine.character;
         return detectedVariableStatements;
     } else if (
         //else if we encounter a i++ or --i case
