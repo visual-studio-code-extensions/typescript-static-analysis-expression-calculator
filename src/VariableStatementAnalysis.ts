@@ -3,4 +3,6 @@ export interface VariableStatementAnalysis {
     variableValue: number;
     variableText: string;
     variableType: string;
+    variableLineNumber: number;
+    variableStartingCharacter: number;
 }

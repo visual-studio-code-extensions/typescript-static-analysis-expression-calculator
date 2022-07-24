@@ -26,7 +26,7 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
     }
 
     //Create array that will hold the variables that we want to work with.
-    const detectedVariableStatements: VariableStatementAnalysis[] = [];
+    let detectedVariableStatements: VariableStatementAnalysis[] = [];
 
     //Collect text(or other information) from every node and add it to the array
     function visitVariableStatement(node: ts.Node) {
@@ -34,6 +34,7 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
         if (ts.isVariableDeclarationList(node)) {
             const variableType = node.getChildAt(0);
             //calculate the value of that variable and add it to the variables array
+            //TODO: edge case: defining two variables same time
             const expression = node.declarations[0];
             const variableValue = processExpression(
                 //variable declartion will be most of the time after the equal sign so we are only working with one and can refer it with [0]
@@ -45,6 +46,11 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
             if (variableValue === undefined) {
                 throw Error("Value is undefined");
             }
+
+            const getLineAndCharacter = ts.getLineAndCharacterOfPosition(
+                sourceFile as ts.SourceFile,
+                node.pos
+            );
             detectedVariableStatements.push({
                 variableName: expression.name.getText(),
 
@@ -53,61 +59,22 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
                 variableText: node.getText(),
 
                 variableType: variableType.getText(),
+
+                variableLineNumber: getLineAndCharacter.line,
+
+                variableStartingCharacter: getLineAndCharacter.character,
             });
             //else if its an expression statement for example defining a variable and changing its value later
             //TODO: should check if its a const or a var
         } else if (ts.isExpressionStatement(node)) {
             const nodeExpression = node.expression;
-            //calculate binary expression and update its value
-            if (ts.isBinaryExpression(nodeExpression)) {
-                const elementIndex = detectedVariableStatements.findIndex(
-                    (variables) => {
-                        return (
-                            variables.variableName ===
-                            nodeExpression.left.getText()
-                        );
-                    }
-                );
-                //variable not found in the array
-                if (elementIndex === -1) {
-                    throw new Error("Variable not defined");
-                }
-
-                const variableValue = processExpression(
-                    nodeExpression.right,
-                    detectedVariableStatements
-                );
-
-                if (variableValue === undefined) {
-                    throw Error("Value is undefined");
-                }
-
-                //since right would always be binary expression we want to process that and update the variable value
-                detectedVariableStatements[elementIndex].variableValue =
-                    variableValue;
-
-                //else if we encounter a i++ or i-- case
-            } else if (ts.isPostfixUnaryExpression(nodeExpression)) {
-                //Work in progress
-                const elementIndex = detectedVariableStatements.findIndex(
-                    (variables) => {
-                        return (
-                            variables.variableName ===
-                            nodeExpression.operand.getText()
-                        );
-                    }
-                );
-
-                //variable not found
-                if (elementIndex === -1) {
-                    throw new Error("Variable not defined");
-                }
-
-                //Apply the correct operation
-                detectedVariableStatements[elementIndex].variableValue =
-                    postFixUnaryExpression[nodeExpression.operator](
-                        detectedVariableStatements[elementIndex].variableValue
-                    );
+            const updatedVariablesArray = editVariables(
+                nodeExpression,
+                sourceFile as ts.SourceFile,
+                detectedVariableStatements
+            );
+            if (updatedVariablesArray !== undefined) {
+                detectedVariableStatements = updatedVariablesArray;
             }
         }
     }
@@ -117,37 +84,111 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
     return detectedVariableStatements;
 }
 
-//TODO: can we merge from a record to something else that supports boolean
-const operations: Record<number, (a: number, b: number) => number> = {
-    39: (a, b) => a + b,
-    40: (a, b) => a - b,
-    41: (a, b) => a * b,
-    42: (a, b) => a ** b,
-    43: (a, b) => a / b,
-    44: (a, b) => a % b,
-};
+const operations = new Map<ts.SyntaxKind, (a: number, b: number) => number>([
+    [ts.SyntaxKind.PlusToken, (a: number, b: number) => a + b],
+    [ts.SyntaxKind.MinusToken, (a: number, b: number) => a - b],
+    [ts.SyntaxKind.AsteriskToken, (a: number, b: number) => a * b],
+    [ts.SyntaxKind.AsteriskAsteriskToken, (a: number, b: number) => a ** b],
+    [ts.SyntaxKind.SlashToken, (a: number, b: number) => a / b],
+    [ts.SyntaxKind.PercentToken, (a: number, b: number) => a % b],
+]);
 
-const boolOperations: Record<number, (a: number, b: number) => boolean> = {
-    //build throws an error for the below two lines, must find a workaround
-    // 34: (a, b) => a == b,
-    // 35: (a, b) => a != b,
-    36: (a, b) => a === b,
-    37: (a, b) => a !== b,
-};
+//Not used yet, keep commented for future uses and boolean expression processing
+// const boolOperations = new Map<ts.SyntaxKind, (a: number, b:number) => boolean>([
+//     [ts.SyntaxKind.EqualsEqualsEqualsToken, (a: number, b: number) => a === b],
+//     [ts.SyntaxKind.ExclamationEqualsEqualsToken, (a: number, b: number) => a !== b],
+// ]);
 
-const postFixUnaryExpression: Record<number, (a: number) => number> = {
-    45: (a) => a + 1,
-    46: (a) => a - 1,
-    // 39: (a) => +a,
-    // 40: (a) => -a,
-};
+const postFixUnaryExpression = new Map<ts.SyntaxKind, (a: number) => number>([
+    [ts.SyntaxKind.PlusPlusToken, (a: number) => a + 1],
+    [ts.SyntaxKind.MinusMinusToken, (a: number) => a - 1],
+]);
 
-const preFixUnaryExpression: Record<number, (a: number) => number> = {
-    45: (a) => a + 1,
-    46: (a) => a - 1,
-    39: (a) => +a,
-    40: (a) => -a,
-};
+const preFixUnaryExpression = new Map<ts.SyntaxKind, (a: number) => number>([
+    [ts.SyntaxKind.PlusPlusToken, (a: number) => a + 1],
+    [ts.SyntaxKind.MinusMinusToken, (a: number) => a - 1],
+    [ts.SyntaxKind.PlusToken, (a: number) => +a],
+    [ts.SyntaxKind.MinusToken, (a: number) => -a],
+]);
+
+function editVariables(
+    nodeExpression: ts.Expression,
+    sourceFile: ts.SourceFile,
+    detectedVariableStatements: VariableStatementAnalysis[]
+): VariableStatementAnalysis[] | undefined {
+    //calculate binary expression and update its value
+    if (ts.isBinaryExpression(nodeExpression)) {
+        const elementIndex = detectedVariableStatements.findIndex(
+            (variables) => {
+                return variables.variableName === nodeExpression.left.getText();
+            }
+        );
+        //variable not found in the array
+        if (elementIndex === -1) {
+            throw new Error("Variable not defined");
+        }
+    
+        //Get the new variable value
+        const newVariableValue = processExpression(
+            nodeExpression.right,
+            detectedVariableStatements
+        );
+
+        const newVariableLine = ts.getLineAndCharacterOfPosition(sourceFile, nodeExpression.pos);
+
+        //Check if undefined and throw an error if so
+        if (newVariableValue === undefined || newVariableLine === undefined) {
+            throw Error("Value is undefined");
+        }
+
+        //since right would always be binary expression we want to process that, and update the variable value
+        detectedVariableStatements[elementIndex].variableValue = newVariableValue;
+
+        detectedVariableStatements[elementIndex].variableLineNumber = newVariableLine.line;
+
+        detectedVariableStatements[elementIndex].variableStartingCharacter = newVariableLine.character;
+        return detectedVariableStatements;
+    } else if (
+        //else if we encounter a i++ or --i case
+        ts.isPostfixUnaryExpression(nodeExpression) ||
+        ts.isPrefixUnaryExpression(nodeExpression)
+    ) {
+        if (ts.isIdentifier(nodeExpression.operand)) {
+            const elementIndex = detectedVariableStatements.findIndex(
+                (variables) => {
+                    return (
+                        variables.variableName ===
+                        nodeExpression.operand.getText()
+                    );
+                }
+            );
+
+            //variable not found
+            if (elementIndex === -1) {
+                throw new Error("Variable not defined");
+            }
+
+            const operation = postFixUnaryExpression.get(
+                nodeExpression.operator
+            );
+            if (operation !== undefined) {
+                detectedVariableStatements[elementIndex].variableValue =
+                    operation(
+                        detectedVariableStatements[elementIndex].variableValue
+                    );
+                return detectedVariableStatements;
+            } else {
+                throw new Error("Operation is Undefined");
+            }
+        } else {
+            //Case where --5/5-- or ++7/7++ which can't be calculated
+            throw new Error(
+                "The operand of an increment or decrement operator must be a variable or a propert"
+            );
+        }
+    }
+    return undefined;
+}
 
 function processExpression(
     node:
@@ -166,11 +207,16 @@ function processExpression(
     if (ts.isBinaryExpression(node)) {
         const left = processExpression(node.left, detectedVariableStatements);
         const right = processExpression(node.right, detectedVariableStatements);
-        if (left !== undefined && right !== undefined) {
-            return operations[node.operatorToken.kind](left, right);
-        } else {
-            return undefined;
+        const operation = operations.get(node.operatorToken.kind);
+
+        if (
+            operation !== undefined &&
+            left !== undefined &&
+            right !== undefined
+        ) {
+            return operation(left, right);
         }
+        return undefined;
     } else if (ts.isNumericLiteral(node)) {
         //in case variables were defined just with one numeric literal for example: const x = 2;
         return parseFloat(node.getText());
@@ -180,7 +226,9 @@ function processExpression(
         });
         if (identifiervalue === undefined) {
             throw new Error(
-                "Identifier cannot be found or undefined, please define a variable before using it"
+                "Identifier" +
+                    node.getText +
+                    " cannot be found or undefined, please define a variable before using it"
             );
         }
 
@@ -198,12 +246,18 @@ function processExpression(
             );
             //variable not found
             if (elementIndex === -1) {
-                throw new Error("Variable not defined");
+                throw new Error(
+                    "Variable: " + node.operand.getText + " not defined"
+                );
             }
+            const operation = preFixUnaryExpression.get(node.operator);
             //Apply the correct operation
-            return preFixUnaryExpression[node.operator](
-                detectedVariableStatements[elementIndex].variableValue
-            );
+            if (operation !== undefined) {
+                return operation(
+                    detectedVariableStatements[elementIndex].variableValue
+                );
+            }
+            return undefined;
         } else {
             if (
                 node.operator === ts.SyntaxKind.PlusPlusToken ||
@@ -211,21 +265,23 @@ function processExpression(
             ) {
                 //Can't do --4 or ++3 when defining a variable
                 throw new Error(
-                    "The operand of an increment or decrement operator must be a variable or a propert"
+                    "The operand of an increment or decrement operator must be a variable or a property"
                 );
             }
             const value = processExpression(
                 node.operand,
                 detectedVariableStatements
             );
-            if (value !== undefined) {
-                return preFixUnaryExpression[node.operator](value);
+            const operation = preFixUnaryExpression.get(node.operator);
+            if (value !== undefined && operation !== undefined) {
+                return operation(value);
             } else {
                 return undefined;
             }
         }
     } else {
-        throw new Error("Cannot process this expression");
+        //TODO: Would be nice to print the node.gettext with the error
+        throw new Error("Cannot process this expression: " + node.getText());
     }
 }
 
@@ -241,5 +297,3 @@ function visitNodeRecursive(node: ts.Node, visit: (node: ts.Node) => void) {
 }
 
 //For future parse and reparse whenever file changes
-//return full line text
-//ts.getLineAndCharacter
