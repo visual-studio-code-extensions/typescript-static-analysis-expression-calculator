@@ -1,8 +1,8 @@
 {
-    "name": "package",
-    "version": "0.0.0",
-    "description": "Simple Package Template",
-    "private": true,
+    "name": "astparserextension",
+    "version": "1.0.0",
+    "description": "AST parser for Typescript",
+    "private": false,
     "main": "./dist/index.js",
     "typings": "./dist/index.d.ts",
     "files": [
@@ -48,14 +48,14 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/wandyezj/package.git"
+        "url": "git+https://github.com/visual-studio-code-extensions/typescript-static-analysis-expression-calculator"
     },
-    "author": "wandyezj",
+    "author": "wandyezj, majds",
     "license": "Unlicense",
     "bugs": {
-        "url": "https://github.com/wandyezj/package/issues"
+        "url": "https://github.com/visual-studio-code-extensions/typescript-static-analysis-expression-calculator/issues"
     },
-    "homepage": "https://github.com/wandyezj/package#readme",
+    "homepage": "https://github.com/visual-studio-code-extensions/typescript-static-analysis-expression-calculator/blob/main/README.md",
     "devDependencies": {
         "@microsoft/api-documenter": "^7.17.9",
         "@microsoft/api-extractor": "^7.25.2",
@@ -64,7 +64,7 @@
         "@typescript-eslint/eslint-plugin": "^5.28.0",
         "@typescript-eslint/parser": "^5.28.0",
         "eslint": "^8.17.0",
-        "jest": "^28.1.1",
+        "jest": "^28.1.3",
         "prettier": "^2.7.1",
         "ts-jest": "^28.0.5",
         "ts-node": "^10.8.1",

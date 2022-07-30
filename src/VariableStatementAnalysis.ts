@@ -1,3 +1,8 @@
 export interface VariableStatementAnalysis {
-    text: string;
+    variableName: string;
+    variableValue: number;
+    variableText: string;
+    variableType: string;
+    variableLineNumber: number;
+    variableStartingCharacter: number;
 }
