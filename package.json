@@ -48,14 +48,14 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/wandyezj/package.git"
+        "url": "git+https://github.com/visual-studio-code-extensions/typescript-static-analysis-expression-calculator"
     },
-    "author": "wandyezj",
+    "author": "wandyezj, majds",
     "license": "Unlicense",
     "bugs": {
-        "url": "https://github.com/wandyezj/package/issues"
+        "url": "https://github.com/visual-studio-code-extensions/typescript-static-analysis-expression-calculator/issues"
     },
-    "homepage": "https://github.com/wandyezj/package#readme",
+    "homepage": "https://github.com/visual-studio-code-extensions/typescript-static-analysis-expression-calculator/blob/main/README.md",
     "devDependencies": {
         "@microsoft/api-documenter": "^7.17.9",
         "@microsoft/api-extractor": "^7.25.2",
