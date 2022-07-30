@@ -37,7 +37,6 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
             //TODO: edge case: defining two variables same time
             const expression = node.declarations[0];
             const variableValue = processExpression(
-                //variable declartion will be most of the time after the equal sign so we are only working with one and can refer it with [0]
                 //get the expression of the variable declaration
                 expression.initializer,
                 detectedVariableStatements
@@ -58,6 +57,7 @@ export function analyzeCode(code: string): VariableStatementAnalysis[] {
 
                 variableText: node.getText(),
 
+                //TODO: add you cant change constants and so
                 variableType: variableType.getText(),
 
                 variableLineNumber: getLineAndCharacter.line,
@@ -145,14 +145,22 @@ function editVariables(
         }
 
         //since right would always be binary expression we want to process that, and update the variable value
-        detectedVariableStatements[elementIndex].variableValue =
-            newVariableValue;
 
-        detectedVariableStatements[elementIndex].variableLineNumber =
-            newVariableLine.line;
+        detectedVariableStatements.push({
+            variableName: detectedVariableStatements[elementIndex].variableName,
 
-        detectedVariableStatements[elementIndex].variableStartingCharacter =
-            newVariableLine.character;
+            variableValue: newVariableValue,
+
+            variableText: nodeExpression.getText(),
+
+            //TODO: add you cant change constants and so
+            variableType: detectedVariableStatements[elementIndex].variableType,
+
+            variableLineNumber: newVariableLine.line,
+
+            variableStartingCharacter: newVariableLine.character,
+        });
+
         return detectedVariableStatements;
     } else if (
         //else if we encounter a i++ or --i case
@@ -177,11 +185,31 @@ function editVariables(
             const operation = postFixUnaryExpression.get(
                 nodeExpression.operator
             );
+
+            const getLineAndCharacter = ts.getLineAndCharacterOfPosition(
+                sourceFile as ts.SourceFile,
+                nodeExpression.pos
+            );
+
             if (operation !== undefined) {
-                detectedVariableStatements[elementIndex].variableValue =
-                    operation(
+                detectedVariableStatements.push({
+                    variableName:
+                        detectedVariableStatements[elementIndex].variableName,
+
+                    variableValue: operation(
                         detectedVariableStatements[elementIndex].variableValue
-                    );
+                    ),
+
+                    variableText: nodeExpression.getText(),
+
+                    //TODO: add you cant change constants and so
+                    variableType:
+                        detectedVariableStatements[elementIndex].variableType,
+
+                    variableLineNumber: getLineAndCharacter.line,
+
+                    variableStartingCharacter: getLineAndCharacter.character,
+                });
                 return detectedVariableStatements;
             } else {
                 throw new Error("Operation is Undefined");
@@ -286,7 +314,6 @@ function processExpression(
             }
         }
     } else {
-        //TODO: Would be nice to print the node.gettext with the error
         throw new Error("Cannot process this expression: " + node.getText());
     }
 }
